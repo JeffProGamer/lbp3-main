@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LBP3ServerRemake - Levels Hub</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://your-app.onrender.com; font-src 'self' https://fonts.googleapis.com;">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap">
+    <script src="https://cdn.jsdelivr.net/npm/three@0.168.0/build/three.min.js" async></script>
+    <noscript>
+        <div style="text-align: center; color: red; padding: 2rem;">
+            Sorry, you need JavaScript enabled to view this website. Please enable it in your browser settings.
+        </div>
+    </noscript>
+    <style>
+        :root {
+            --primary-orange: #FF6B35;
+            --accent-purple: #7B68EE;
+            --glow-yellow: #FFD700;
+            --bg-dark: #1A1A2E;
+            --text-light: #FFFFFF;
+            --card-bg: rgba(255, 107, 53, 0.15);
+            --shadow: 0 6px 12px rgba(123, 104, 238, 0.4);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: linear-gradient(135deg, var(--bg-dark), #16213E);
+            color: var(--text-light);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        #status-banner {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 0.75rem;
+            text-align: center;
+            background: linear-gradient(90deg, var(--primary-orange), var(--accent-purple));
+            z-index: 999;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.6);
+            transition: var(--transition);
+        }
+
+        #status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ff4444;
+            animation: pulse 1.5s infinite;
+            box-shadow: 0 0 8px rgba(255, 68, 68, 0.5);
+        }
+
+        .status-dot.online {
+            background: #4CAF50;
+            box-shadow: 0 0 8px rgba(76, 175, 80, 0.5);
+        }
+
+        .status-text {
+            font-weight: 700;
+            text-shadow: 0 0 6px var(--glow-yellow);
+            font-size: 1.1rem;
+        }
+
+        #login-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        #login-modal.visible { opacity: 1; }
+
+        .modal-content {
+            background: var(--bg-dark);
+            padding: 2.5rem;
+            border-radius: 20px;
+            text-align: center;
+            max-width: 450px;
+            width: 90%;
+            box-shadow: var(--shadow);
+            border: 3px solid var(--primary-orange);
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+        }
+
+        .modal-content.visible { transform: scale(1); }
+
+        .modal-content h2 {
+            color: var(--primary-orange);
+            margin-bottom: 1.5rem;
+            font-size: 1.8rem;
+            text-shadow: 0 0 5px var(--glow-yellow);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        input[type="email"], input[type="password"], input[type="text"] {
+            width: 100%;
+            padding: 1rem;
+            border: 2px solid var(--accent-purple);
+            border-radius: 8px;
+            background: rgba(255,255,255,0.1);
+            color: var(--text-light);
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--glow-yellow);
+            box-shadow: 0 0 8px var(--glow-yellow);
+        }
+
+        input::placeholder { color: #aaa; }
+
+        .btn {
+            background: var(--primary-orange);
+            color: var(--text-light);
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: 700;
+            transition: var(--transition);
+            margin: 0.5rem;
+            width: 100%;
+        }
+
+        .btn:hover, .btn:active {
+            background: var(--accent-purple);
+            transform: scale(1.05);
+            box-shadow: 0 0 10px var(--accent-purple);
+        }
+
+        .btn:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .hidden { display: none; }
+
+        header {
+            text-align: center;
+            padding: 3rem 1rem;
+            background: linear-gradient(90deg, var(--primary-orange), var(--accent-purple));
+            margin-top: 50px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            transition: var(--transition);
+        }
+
+        header h1 {
+            font-size: 3.5rem;
+            margin-bottom: 0.75rem;
+            text-shadow: 0 0 12px var(--glow-yellow);
+        }
+
+        .purple {
+            color: var(--glow-yellow);
+            text-shadow: none;
+        }
+
+        header p {
+            font-size: 1.3rem;
+            opacity: 0.9;
+        }
+
+        main {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 2.5rem;
+            color: var(--primary-orange);
+            font-size: 2rem;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        h2.visible { opacity: 1; }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+        }
+
+        .user-card, .level-card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 2rem;
+            text-align: center;
+            border: 2px solid transparent;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+            opacity: 0;
+            transform: translateY(30px);
+            position: relative;
+        }
+
+        .level-card.popped, .user-card.popped {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .level-card.guest-blur, .user-card.guest-blur {
+            filter: blur(3px);
+            pointer-events: none;
+        }
+
+        .guest-teaser {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.8);
+            padding: 1.2rem;
+            border-radius: 12px;
+            color: var(--glow-yellow);
+            font-size: 1rem;
+            z-index: 10;
+            box-shadow: 0 0 10px var(--glow-yellow);
+        }
+
+        .moderated-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: #ff4444;
+            color: white;
+            padding: 0.3rem 0.7rem;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 700;
+        }
+
+        .user-card:hover:not(.guest-blur), .level-card:hover:not(.guest-blur) {
+            transform: scale(1.05) translateY(-10px);
+            box-shadow: 0 8px 16px rgba(123, 104, 238, 0.5);
+            border-color: var(--accent-purple);
+            background: rgba(255, 107, 53, 0.25);
+        }
+
+        .user-card img, .level-card img {
+            width: 100%;
+            height: 160px;
+            object-fit: cover;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            transition: opacity 0.3s ease;
+        }
+
+        .user-card h3, .level-card h3 {
+            color: var(--primary-orange);
+            margin-bottom: 0.75rem;
+            font-size: 1.4rem;
+        }
+
+        .level-creator {
+            font-size: 1rem;
+            color: var(--accent-purple);
+            font-style: italic;
+            margin-bottom: 0.5rem;
+        }
+
+        .level-date {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .logout-btn {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: #ff4444;
+            color: white;
+            border: none;
+            padding: 0.7rem;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: var(--transition);
+        }
+
+        .logout-btn:hover {
+            background: var(--accent-purple);
+            transform: scale(1.1);
+        }
+
+        #character-viewer {
+            width: 100%;
+            height: 320px;
+            margin-bottom: 2.5rem;
+            border: 3px solid var(--accent-purple);
+            border-radius: 20px;
+            overflow: hidden;
+            position: relative;
+            background: rgba(0,0,0,0.3);
+            display: none;
+            transition: opacity 0.5s ease;
+        }
+
+        .loading-spinner {
+            border: 4px solid var(--text-light);
+            border-top: 4px solid var(--primary-orange);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 2rem auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes slideDown {
+            from { transform: translateY(-100%); }
+            to { transform: translateY(0); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes popUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @media (max-width: 768px) {
+            header h1 { font-size: 2.5rem; }
+            .grid { grid-template-columns: 1fr; }
+            #character-viewer { height: 240px; }
+            .modal-content { padding: 1.5rem; }
+            .btn { padding: 0.8rem 1.5rem; }
+        }
+
+        @media (max-width: 480px) {
+            header h1 { font-size: 2rem; }
+            .user-card, .level-card { padding: 1.5rem; }
+            .modal-content { max-width: 90%; }
+        }
+    </style>
+</head>
+<body>
+    <div id="status-banner">
+        <div id="status-indicator">
+            <div class="status-dot" id="status-dot"></div>
+            <span class="status-text" id="status-text">LBP3ServerRemake: Checking...</span>
+        </div>
+    </div>
+
+    <div id="login-modal" class="hidden">
+        <div class="modal-content">
+            <h2>Welcome to LBP<span class="purple">3</span>ServerRemake</h2>
+            <p id="modal-message">Login or register for full access!</p>
+            <div id="login-form" class="form-group">
+                <input type="email" id="email-input" placeholder="Enter your email" required>
+                <input type="password" id="password-input" placeholder="Enter your password" required>
+                <button class="btn" onclick="login()">Login</button>
+                <button class="btn" onclick="showRegisterForm()">Register</button>
+            </div>
+            <div id="register-form" class="form-group hidden">
+                <input type="email" id="reg-email-input" placeholder="Enter your email" required>
+                <input type="text" id="reg-username-input" placeholder="Enter your username" required>
+                <input type="password" id="reg-password-input" placeholder="Enter your password" required>
+                <input type="password" id="reg-password-confirm" placeholder="Confirm your password" required>
+                <button class="btn" onclick="register()">Create Account</button>
+                <button class="btn" onclick="showLoginForm()">Back to Login</button>
+            </div>
+            <p id="message" style="color: var(--glow-yellow); margin-top: 1.5rem;"></p>
+        </div>
+    </div>
+
+    <header id="header">
+        <h1>LBP<span class="purple">3</span>ServerRemake</h1>
+        <p id="header-p">Discover community creations!</p>
+        <button class="logout-btn hidden" onclick="logout()" id="logout-btn">🚪</button>
+    </header>
+
+    <main id="main">
+        <section id="users-section" class="hidden">
+            <h2 class="visible">Users</h2>
+            <div id="users-list" class="grid"></div>
+        </section>
+        <section id="levels-section">
+            <button id="back-btn" class="btn hidden">← Back to Users</button>
+            <h2 id="user-name" class="visible">Community Levels</h2>
+            <div id="character-viewer"></div>
+            <div id="levels-list" class="grid"></div>
+        </section>
+    </main>
+
+    <script>
+        const SERVER_URL = 'https://your-app.onrender.com'; // REPLACE with your Render URL
+        let token = localStorage.getItem('authToken');
+        let isAuthenticated = !!token;
+        let serverStatus = 'Offline';
+        let currentUserId = null;
+        let scene, camera, renderer, sackboy;
+        let updateInterval;
+
+        // Secure password hashing
+        async function hashPassword(password) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(password);
+            const hash = await crypto.subtle.digest('SHA-256', data);
+            return Array.from(new Uint8Array(hash))
+                .map(b => b.toString(16).padStart(2, '0'))
+                .join('');
+        }
+
+        function sanitizeInput(input) {
+            return input ? String(input).replace(/[^\w\s@.-]/gi, '') : '';
+        }
+
+        // Cache API responses
+        function cacheResponse(key, data, ttl = 300000) {
+            const item = { data, timestamp: Date.now(), ttl };
+            sessionStorage.setItem(key, JSON.stringify(item));
+        }
+
+        function getCachedResponse(key) {
+            const item = sessionStorage.getItem(key);
+            if (!item) return null;
+            const { data, timestamp, ttl } = JSON.parse(item);
+            if (Date.now() - timestamp > ttl) {
+                sessionStorage.removeItem(key);
+                return null;
+            }
+            return data;
+        }
+
+        function init3DViewer() {
+            if (!isAuthenticated) return;
+            const viewer = document.getElementById('character-viewer');
+            viewer.style.display = 'block';
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, viewer.clientWidth / viewer.clientHeight, 0.1, 1000);
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(viewer.clientWidth, viewer.clientHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Optimize for low-end devices
+            viewer.appendChild(renderer.domElement);
+
+            const geometry = new THREE.SphereGeometry(0.8, 24, 24); // Lower poly count
+            const texture = new THREE.TextureLoader().load('https://via.placeholder.com/256?text=Sackboy');
+            const material = new THREE.MeshBasicMaterial({ map: texture });
+            sackboy = new THREE.Mesh(geometry, material);
+            scene.add(sackboy);
+
+            const light = new THREE.AmbientLight(0xffffff, 0.9);
+            scene.add(light);
+
+            camera.position.z = 3;
+
+            window.addEventListener('resize', () => {
+                if (renderer && viewer) {
+                    renderer.setSize(viewer.clientWidth, viewer.clientHeight);
+                    camera.aspect = viewer.clientWidth / viewer.clientHeight;
+                    camera.updateProjectionMatrix();
+                }
+            });
+
+            animate3D();
+        }
+
+        function animate3D() {
+            requestAnimationFrame(animate3D);
+            if (sackboy) {
+                sackboy.rotation.y += 0.008;
+                sackboy.position.y = Math.sin(Date.now() * 0.0015) * 0.15;
+            }
+            if (renderer && scene && camera) renderer.render(scene, camera);
+        }
+
+        async function updateCharacter(userId) {
+            if (!userId || !isAuthenticated) return;
+            try {
+                const response = await fetch(`${SERVER_URL}/api/v1/user/${userId}/character`, {
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    signal: AbortSignal.timeout(10000)
+                });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                const textureUrl = sanitizeInput(data.costume?.textureUrl) || 'https://via.placeholder.com/256?text=Sackboy';
+                if (sackboy) {
+                    sackboy.material.map = new THREE.TextureLoader().load(textureUrl);
+                    sackboy.material.needsUpdate = true;
+                }
+            } catch (error) {
+                console.error('Error updating character:', error);
+            }
+        }
+
+        async function checkServerStatus() {
+            try {
+                const response = await fetch(`${SERVER_URL}/api/health`, {
+                    method: 'GET',
+                    signal: AbortSignal.timeout(10000)
+                });
+                if (response.ok) {
+                    document.getElementById('status-dot').classList.add('online');
+                    document.getElementById('status-dot').classList.remove('offline');
+                    serverStatus = 'Online (Beta)';
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                document.getElementById('status-dot').classList.add('offline');
+                document.getElementById('status-dot').classList.remove('online');
+                serverStatus = 'Offline/Maintenance';
+            }
+            document.getElementById('status-text').textContent = `LBP3ServerRemake: ${serverStatus}`;
+            setTimeout(checkServerStatus, 30000);
+        }
+
+        function animatePopUps(container) {
+            const cards = container.querySelectorAll('.level-card, .user-card');
+            cards.forEach((card, index) => {
+                card.style.animationDelay = `${index * 0.2}s`;
+                setTimeout(() => card.classList.add('popped'), index * 200);
+            });
+        }
+
+        function checkAuth() {
+            if (isAuthenticated) {
+                document.getElementById('login-modal').classList.add('hidden');
+                document.getElementById('header-p').textContent = 'Discover community creations!';
+                document.getElementById('logout-btn').classList.remove('hidden');
+                document.getElementById('users-section').classList.remove('hidden');
+                document.getElementById('back-btn').classList.remove('hidden');
+                fetchUsers();
+            } else {
+                document.getElementById('login-modal').classList.remove('hidden');
+                document.getElementById('login-modal').classList.add('visible');
+                document.querySelector('.modal-content').classList.add('visible');
+                document.getElementById('header-p').textContent = 'Login to interact with levels!';
+                loadGuestLevels();
+            }
+        }
+
+        async function loadGuestLevels() {
+            const cacheKey = 'guest_levels';
+            const cached = getCachedResponse(cacheKey);
+            if (cached) {
+                displayLevels(cached, 'Community', false);
+                return;
+            }
+            document.getElementById('levels-list').innerHTML = '<div class="loading-spinner"></div>';
+            try {
+                const response = await fetchWithRetry(`${SERVER_URL}/api/v1/slots`, { signal: AbortSignal.timeout(10000) });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const slots = await response.json();
+                cacheResponse(cacheKey, slots);
+                displayLevels(slots, 'Community', false);
+            } catch (error) {
+                console.error('Error fetching guest levels:', error);
+                document.getElementById('levels-list').innerHTML = `<p style="text-align: center; color: red;">Error: Failed to load levels. Server may be ${serverStatus.toLowerCase()} or slow.</p>`;
+            }
+        }
+
+        async function fetchWithRetry(url, options, retries = 2) {
+            for (let i = 0; i <= retries; i++) {
+                try {
+                    const response = await fetch(url, options);
+                    return response;
+                } catch (error) {
+                    if (i === retries) throw error;
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+            }
+        }
+
+        async function login() {
+            const email = sanitizeInput(document.getElementById('email-input').value);
+            const password = document.getElementById('password-input').value;
+            if (!email || !email.includes('@') || !password) {
+                showMessage('Invalid email or password!', 'red');
+                return;
+            }
+            try {
+                document.getElementById('login-form').querySelector('.btn').disabled = true;
+                const passwordHash = await hashPassword(password);
+                const response = await fetchWithRetry(`${SERVER_URL}/api/v1/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password_hash: passwordHash }),
+                    signal: AbortSignal.timeout(10000)
+                });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                token = data.token;
+                localStorage.setItem('authToken', token);
+                isAuthenticated = true;
+                document.getElementById('login-modal').classList.remove('visible');
+                document.getElementById('login-modal').classList.add('hidden');
+                document.getElementById('header-p').textContent = 'Discover community creations!';
+                document.getElementById('logout-btn').classList.remove('hidden');
+                document.getElementById('users-section').classList.remove('hidden');
+                document.getElementById('back-btn').classList.remove('hidden');
+                showMessage('Logged in!', 'green');
+                fetchUsers();
+            } catch (error) {
+                console.error('Login error:', error);
+                showMessage('Login failed: Invalid credentials or server error.', 'red');
+            } finally {
+                document.getElementById('login-form').querySelector('.btn').disabled = false;
+            }
+        }
+
+        async function register() {
+            const email = sanitizeInput(document.getElementById('reg-email-input').value);
+            const username = sanitizeInput(document.getElementById('reg-username-input').value);
+            const password = document.getElementById('reg-password-input').value;
+            const confirmPassword = document.getElementById('reg-password-confirm').value;
+            if (!email || !email.includes('@') || !username || !password || password !== confirmPassword) {
+                showMessage('Invalid input or passwords do not match!', 'red');
+                return;
+            }
+            try {
+                document.getElementById('register-form').querySelector('.btn').disabled = true;
+                const passwordHash = await hashPassword(password);
+                const response = await fetchWithRetry(`${SERVER_URL}/api/v1/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, username, password_hash: passwordHash }),
+                    signal: AbortSignal.timeout(10000)
+                });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                token = data.token;
+                localStorage.setItem('authToken', token);
+                isAuthenticated = true;
+                document.getElementById('login-modal').classList.remove('visible');
+                document.getElementById('login-modal').classList.add('hidden');
+                document.getElementById('header-p').textContent = 'Discover community creations!';
+                document.getElementById('logout-btn').classList.remove('hidden');
+                document.getElementById('users-section').classList.remove('hidden');
+                document.getElementById('back-btn').classList.remove('hidden');
+                showMessage('Account created and logged in!', 'green');
+                fetchUsers();
+            } catch (error) {
+                console.error('Registration error:', error);
+                showMessage('Registration failed: Email may exist or server error.', 'red');
+            } finally {
+                document.getElementById('register-form').querySelector('.btn').disabled = false;
+            }
+        }
+
+        function showLoginForm() {
+            document.getElementById('register-form').classList.add('hidden');
+            document.getElementById('login-form').classList.remove('hidden');
+            document.getElementById('modal-message').textContent = 'Login or register for full access!';
+        }
+
+        function showRegisterForm() {
+            document.getElementById('login-form').classList.add('hidden');
+            document.getElementById('register-form').classList.remove('hidden');
+            document.getElementById('modal-message').textContent = 'Create your account!';
+        }
+
+        function showMessage(text, color) {
+            const msg = document.getElementById('message');
+            msg.textContent = text;
+            msg.style.color = color;
+        }
+
+        function logout() {
+            localStorage.removeItem('authToken');
+            sessionStorage.clear();
+            token = null;
+            isAuthenticated = false;
+            location.reload();
+        }
+
+        async function fetchUsers() {
+            const cacheKey = 'users_list';
+            const cached = getCachedResponse(cacheKey);
+            if (cached) {
+                displayUsers(cached);
+                return;
+            }
+            document.getElementById('users-list').innerHTML = '<div class="loading-spinner"></div>';
+            try {
+                const response = await fetchWithRetry(`${SERVER_URL}/api/v1/users`, {
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    signal: AbortSignal.timeout(10000)
+                });
+                if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                const users = await response.json();
+                cacheResponse(cacheKey, users);
+                displayUsers(users);
+            } catch (error) {
+                console.error('Error fetching users:', error);
+                document.getElementById('users-list').innerHTML = `<p style="text-align: center; color: red;">Error: Failed to load users. Try logging in again or check server status.</p>`;
+            }
+        }
+
+        function displayUsers(users) {
+            const container = document.getElementById('users-list');
+            container.innerHTML = '';
+            if (!users || users.length === 0) {
+                container.innerHTML = '<p style="text-align: center;">No users found.</p>';
+                return;
+            }
+            users.forEach((user, index) => {
+                const card = document.createElement('div');
+                card.className = 'user-card';
+                card.style.animationDelay = `${index * 0.1}s`;
+                const userName = sanitizeInput(user.name || user.username || 'Unknown');
+                card.innerHTML = `
+                    <img loading="lazy" src="https://via.placeholder.com/250x150/FF6B35/FFFFFF?text=${userName}" alt="${userName}">
+                    <h3>${userName}</h3>
+                    <p>${sanitizeInput(user.id)}</p>
+                `;
+                card.addEventListener('click', () => showUserLevels(user.id, userName));
+                container.appendChild(card);
+            });
+            animatePopUps(container);
+        }
+
+        async function showUserLevels(userId, userName) {
+            currentUserId = userId;
+            document.getElementById('users-section').classList.add('hidden');
+            document.getElementById('levels-section').classList.remove('hidden');
+            document.getElementById('user-name').textContent = `${sanitizeInput(userName)}'s Levels`;
+            init3DViewer();
+            if (updateInterval) clearInterval(updateInterval);
+            updateCharacter(userId);
+            updateInterval = setInterval(() => updateCharacter(userId), 30000);
+
+            const cacheKey = `user_levels_${userId}`;
+            const cached = getCachedResponse(cacheKey);
+            if (cached) {
+                displayLevels(cached, userName, true);
+                return;
+            }
+            document.getElementById('levels-list').innerHTML = '<div class="loading-spinner"></div>';
+            try {
+                const response = await fetchWithRetry(`${SERVER_URL}/api/v1/user/${userId}/slots`, {
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    signal: AbortSignal.timeout(10000)
+                });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const slots = await response.json();
+                cacheResponse(cacheKey, slots);
+                displayLevels(slots, userName, true);
+            } catch (error) {
+                console.error('Error fetching levels:', error);
+                document.getElementById('levels-list').innerHTML = `<p style="text-align: center; color: red;">Error: Failed to load levels. Server may be ${serverStatus.toLowerCase()}.</p>`;
+            }
+        }
+
+        function displayLevels(slots, creator, authenticated = false) {
+            const container = document.getElementById('levels-list');
+            container.innerHTML = '';
+            if (!slots || slots.length === 0) {
+                container.innerHTML = '<p style="text-align: center;">No levels found.</p>';
+                return;
+            }
+            slots.forEach((slot, index) => {
+                const moderated = slot.moderated || false;
+                const card = document.createElement('div');
+                card.className = 'level-card' + (!authenticated ? ' guest-blur' : '');
+                card.style.animationDelay = `${index * 0.2}s`;
+                const slotName = sanitizeInput(slot.name || 'Unnamed Level');
+                card.innerHTML = `
+                    ${moderated ? '<span class="moderated-badge">Moderated</span>' : ''}
+                    <img loading="lazy" src="${sanitizeInput(slot.thumbnailUrl) || 'https://via.placeholder.com/250x150/7B68EE/FFFFFF?text=' + encodeURIComponent(slotName)}" alt="${slotName}">
+                    <h3>${slotName}</h3>
+                    <p class="level-creator">Made by: ${sanitizeInput(creator)}</p>
+                    <p class="level-date">Published: ${new Date(slot.firstPublishDate || Date.now()).toLocaleDateString()}</p>
+                    ${!authenticated ? '<div class="guest-teaser">Login to interact!</div>' : ''}
+                `;
+                if (authenticated) {
+                    card.addEventListener('click', () => {
+                        if (moderated) alert('This level has been moderated for safety.');
+                        else alert(`Launch level ${slotName} in LBP3! Slot ID: ${slot.id}`);
+                    });
+                }
+                container.appendChild(card);
+            });
+            animatePopUps(container);
+        }
+
+        document.getElementById('back-btn').addEventListener('click', () => {
+            document.getElementById('levels-section').classList.add('hidden');
+            document.getElementById('users-section').classList.remove('hidden');
+            document.getElementById('user-name').textContent = 'Community Levels';
+            if (renderer) renderer.domElement.remove();
+            if (updateInterval) clearInterval(updateInterval);
+            currentUserId = null;
+            document.getElementById('character-viewer').style.display = 'none';
+        });
+
+        document.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                if (!document.getElementById('login-form').classList.contains('hidden')) login();
+                else if (!document.getElementById('register-form').classList.contains('hidden')) register();
+            }
+        });
+
+        checkServerStatus();
+        checkAuth();
+    </script>
+</body>
+</html>
