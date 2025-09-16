@@ -7,7 +7,7 @@ const cors = require('cors');
 const app = express();
 const cache = new NodeCache({ stdTTL: 300 }); // Cache for 5 minutes
 const PORT = process.env.PORT || 3000;
-const API_URL = 'https://your-api.onrender.com'; // REPLACE with your Lighthouse API URL
+const API_URL = 'https://lbp3-server-remake.onrender.com'; // REPLACE with your Lighthouse API URL
 
 app.use(cors({ origin: true }));
 app.use(express.json());
